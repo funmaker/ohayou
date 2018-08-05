@@ -1,12 +1,14 @@
 import React from 'react'
 import {fetchInitialData, getInitialData} from "../helpers/initialData";
 import UploadModule from '../modules/UploadModule';
+import NotificationModule from '../modules/NotificationModule';
 import ModuleButton from "../components/ModuleButton";
 
 const busyBraile = ['⠙', '⠸', '⢰', '⣠', '⣄', '⡆', '⠇', '⠋'];
 
 const modules = [
 	UploadModule,
+    NotificationModule,
 ];
 
 export default class IndexPage extends React.Component {
