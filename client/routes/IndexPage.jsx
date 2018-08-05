@@ -9,6 +9,28 @@ const modules = [
 	UploadModule,
 ];
 
+const joinTrue = obj => Object.entries(obj).filter(([k, v]) => v).map(([k, v]) => k).join(" ");
+
+const ModuleButtons = ({moduleNames, direction, openModule, dragModule, dropModule, dragging}) => (
+    <div className={`ModuleButtons ${direction}`} >
+		{moduleNames.map(modName => <ModuleButton Module={modules.find(mod => mod.name === modName)}
+												  key={modName}
+												  className={dragging === modName ? "hidden" : "visible"}
+												  onClick={openModule(modName, direction.toLowerCase().includes("left"))}
+												  onDragStart={dragModule(modName)}
+                                                  onDragEnd={dropModule}
+												  draggable/>)}
+	</div>
+);
+
+const ModuleButtonDropZone = ({direction, dropping, enterDropZone, leaveDropZone, dropDropZone}) => (
+	<div className={`ModuleButtonDropZone ${direction} ${dropping === direction ? "active" : ""}`}
+		 onDragOver={ev => ev.preventDefault()}
+		 onDragEnter={enterDropZone(direction)}
+		 onDragLeave={leaveDropZone}
+		 onDrop={dropDropZone(direction)}/>
+);
+
 export default class IndexPage extends React.Component {
 	constructor() {
 		super();
@@ -20,6 +42,14 @@ export default class IndexPage extends React.Component {
 			leftModuleOpen: false,
 			RightModule: null,
             rightModuleOpen: false,
+			buttons: {
+                topLeft: [],
+                topRight: [],
+                bottomLeft: modules.map(mod => mod.name),
+                bottomRight: [],
+			},
+			dragging: null,
+            dropping: null,
 		};
 	}
 	
@@ -36,8 +66,9 @@ export default class IndexPage extends React.Component {
 		clearInterval(this.interval);
 	}
 
-    openModule = (Module, left) => ev => {
+    openModule = (modName, left) => ev => {
 		ev.stopPropagation();
+		const Module = modules.find(mod => mod.name === modName);
 		if(left) {
 			this.setState({
 				LeftModule: Module,
@@ -50,6 +81,44 @@ export default class IndexPage extends React.Component {
             });
 		}
 	};
+
+	dragModule = modName => ev => {
+		ev.dataTransfer.setData("modName", modName);
+		this.setState({
+			dragging: modName,
+		})
+	};
+
+    dropModule = ev => {
+        this.setState({
+            dragging: null,
+        })
+    };
+
+    enterDropZone = direction => ev => {
+        this.setState({
+            dropping: direction,
+        })
+    };
+
+    leaveDropZone = ev => {
+        this.setState({
+            dropping: null,
+        })
+    };
+
+    dropDropZone = direction => ev => {
+    	const buttons = {...this.state.buttons};
+    	for(let dir in buttons) {
+    		buttons[dir] = buttons[dir].filter(modName => modName !== this.state.dragging);
+		}
+		buttons[direction].push(this.state.dragging);
+    	this.setState({
+			buttons,
+    		dropping: null,
+			dragging: null,
+    	})
+    };
 
 	closeModules = ev => {
         this.setState({
@@ -69,18 +138,28 @@ export default class IndexPage extends React.Component {
                     {busyBraile[this.state.counter]}
                 </div>
 
-				<div className="modules left bottom">
-                    {modules.map(Module => <ModuleButton Module={Module} key={Module.name} onClick={this.openModule(Module, true)}/>)}
-				</div>
-                <div className="modules right bottom">
-                    {modules.map(Module => <ModuleButton Module={Module} key={Module.name} onClick={this.openModule(Module, false)}/>)}
-                </div>
-                <div className="modules left top">
-                    {modules.map(Module => <ModuleButton Module={Module} key={Module.name} onClick={this.openModule(Module, true)}/>)}
-                </div>
-                <div className="modules right top">
-                    {modules.map(Module => <ModuleButton Module={Module} key={Module.name} onClick={this.openModule(Module, false)}/>)}
-                </div>
+                <ModuleButtons direction="topLeft" moduleNames={this.state.buttons.topLeft} openModule={this.openModule}
+							   dragModule={this.dragModule} dragging={this.state.dragging} dropModule={this.dropModule} />
+                <ModuleButtons direction="topRight" moduleNames={this.state.buttons.topRight} openModule={this.openModule}
+							   dragModule={this.dragModule} dragging={this.state.dragging} dropModule={this.dropModule} />
+                <ModuleButtons direction="bottomLeft" moduleNames={this.state.buttons.bottomLeft} openModule={this.openModule}
+							   dragModule={this.dragModule} dragging={this.state.dragging} dropModule={this.dropModule} />
+                <ModuleButtons direction="bottomRight" moduleNames={this.state.buttons.bottomRight} openModule={this.openModule}
+							   dragModule={this.dragModule} dragging={this.state.dragging} dropModule={this.dropModule} />
+
+				{this.state.dragging ? (
+					<React.Fragment>
+                        <ModuleButtonDropZone direction="topLeft" dropping={this.state.dropping}
+                                              enterDropZone={this.enterDropZone} leaveDropZone={this.leaveDropZone} dropDropZone={this.dropDropZone} />
+                        <ModuleButtonDropZone direction="topRight" dropping={this.state.dropping}
+											  enterDropZone={this.enterDropZone} leaveDropZone={this.leaveDropZone} dropDropZone={this.dropDropZone} />
+                        <ModuleButtonDropZone direction="bottomLeft" dropping={this.state.dropping}
+											  enterDropZone={this.enterDropZone} leaveDropZone={this.leaveDropZone} dropDropZone={this.dropDropZone} />
+                        <ModuleButtonDropZone direction="bottomRight" dropping={this.state.dropping}
+											  enterDropZone={this.enterDropZone} leaveDropZone={this.leaveDropZone} dropDropZone={this.dropDropZone} />
+					</React.Fragment>
+				) : null}
+
 				<div className={leftModuleOpen ? "modulePanel left open" : "modulePanel left"}>
 					{LeftModule ? <LeftModule /> : null}
 				</div>
