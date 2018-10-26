@@ -2,12 +2,19 @@ import React from 'react';
 import {Icon} from "semantic-ui-react";
 
 export default class NotificationModule extends React.Component {
+
+    constructor(props) {
+        super(props);
+        this.state = {
+            entries: [],
+        };
+
+    }
     componentDidMount(){
         this.ws = new WebSocket("ws://funmaker.me:9039");
         console.log(this.ws);
 
         this.ws.onopen = () => {
-
             const msg = {
                 command: 'fetch',
                 flat: true,
@@ -17,40 +24,38 @@ export default class NotificationModule extends React.Component {
             this.ws.send(JSON.stringify(msg));
         };
 
-
         this.ws.onmessage = (event) => {
-
             let e = JSON.parse(event.data);
             console.log(e);
 
-        }
-
-        this.ws.onmessage
-
+            this.setState({
+                entries: [
+                    ...e.status.sort((a, b) => a.timestamp - b.timestamp),
+                    ...e.notifications.sort((a, b) => a.timestamp - b.timestamp),
+                ],
+            });
+        };
 
     }
 
     render() {
-        return "kek";
+        return this.state.entries.map(entry => <NotificationEntry entry={entry}/>);
     }
 
     static renderButton() {
         return <Icon  name='rss' />;
     }
 }
-// Send text to all users through the server
-function sendText() {
-    // Construct a msg object containing the data the server needs to process the message from the chat client.
-    var msg = {
-        type: "message",
-        text: document.getElementById("text").value,
-        id:   clientID,
-        date: Date.now()
-    };
 
-    // Send the msg object as a JSON-formatted string.
-    exampleSocket.send(JSON.stringify(msg));
-
-    // Blank the text input element, ready to receive the next line of text from the user.
-    document.getElementById("text").value = "";
+function NotificationEntry({entry}) {
+    return (
+        <div className="NotificationEntry">
+            <a>
+                <span>{entry.feedName}</span>
+                    {entry.description}
+                <span>{entry.time}</span>
+            </a>
+        </div>
+    );
 }
+
